@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+	<!-- 配置自定义的Realm -->
+	<bean id="userRealm" class="com.ssm.realm.UserRealm">
+		<!-- 在自定义的realm中进行凭证匹配器的注入 -->
+	 <property name="credentialsMatcher" ref="credentialsMatcher"></property> 
+	</bean>
+	
+	<!-- 配置shiro的凭证匹配器 -->
+	<bean id="credentialsMatcher" class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+		<!-- 表示使用的是MD5加密算法 -->
+		<property name="hashAlgorithmName" value="md5"></property>
+		<!-- 代表加密算法迭代的次数 -->
+		<property name="hashIterations" value="2"></property>
+	</bean>
+	
+	
+	<!-- 配置shiro的核心SecurityManager（安全管理器）,web的实现类 -->
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<!-- 加载默认的配置
+			1、配置自定义的Realm
+		 -->
+		<property name="realm" ref="userRealm"></property>
+	    <property name="cacheManager" ref="cacheManager"></property>
+	</bean>
+	
+	<!-- 配置Shiro的缓存管理器 -->
+	<bean id="cacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+	   <!--代表扫描本地自定义的ehcache配置文件，如果没有自定义的cache文件可以不写，直接走Shiro中默认的配置文件 -->	
+		<property name="cacheManagerConfigFile" value="classpath:ehcache.xml"></property>
+	</bean> 
+
+	<!-- Spring整合shiro使用的类(安全认证过滤器)
+		1、注意此处的id与web.xml中配置的filter-name属性值一致
+		2、必须在该类中配置securityManager
+	 -->  
+	<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+		<!-- 配置安全管理器 -->
+		<property name="securityManager" ref="securityManager"></property>
+		<!-- 登录url,如果不配置该属性则默认找的是根路径下的login.jsp文件
+			当访问需要认证资源时，如果没有经过权限认证则默认跳转登录，进行权限的验证
+			（其他时候不会触发该项操作）
+			 登录失败的时候跳到哪里去
+		 -->
+		<property name="loginUrl" value="/user/login"></property>
+		<!-- 配置成功后跳转到哪个界面，通过不设置，那么默认在认证成功后，跳转到上一个url(就是之前请求的url) -->
+		<property name="successUrl" value="/main"></property> 
+		<!-- 配置用户在没有权限时，跳转的页面 -->
+		<property name="unauthorizedUrl" value="/toLogin"></property>
+		
+		<!-- 配置shiro的过滤器链 -->
+		<property name="filterChainDefinitions">
+			<value>
+				<!-- 实现跳转到登录界面的时候不需要验证 -->
+				/toLogin=anon
+				/login=anon
+				<!-- 实现登录操作需要验证身份 -->
+				/user/login=authc
+				<!-- 所有的请求都需要验证用户身份 -->
+				/**=anon
+				<!-- 允许静态的资源进行访问数据 ，以及其他资源匿名访问-->
+				/js/**=anon
+				/css/**=anon
+				/images/**=anon
+				<!-- 代表退出操作， 默认跳转根路径下的logout.jsp，配置logout过滤器，bean的id就叫做logout-->
+				/rest/admin/logout=logout
+			</value>
+		</property>
+	</bean>	
+
+	
+</beans>

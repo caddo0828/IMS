@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xmlns:tx="http://www.springframework.org/schema/tx" 
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context  
+		http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/tx 
+		http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/mvc  
+		http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+ 	<!-- 加载属性文件 -->
+ 	<context:property-placeholder location="classpath*:*.properties"/>
+ 	
+ 	<!-- 注解扫描 , 只要扫描的是impl实现类的，扫描其他的话，会造成声明式事务无效-->
+	<context:component-scan base-package="com.ssm.service.impl"></context:component-scan>
+ 	
+ 	<!-- 指定代理类别为cglib动态代理 -->
+ 	<aop:aspectj-autoproxy proxy-target-class="true"></aop:aspectj-autoproxy>
+ 
+ 	<!-- 配置数据源 dataSource-->
+ 	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+ 		<property name="driverClassName" value="${jdbc.driver}"></property>
+ 		<property name="url" value="${jdbc.url}"></property>
+ 		<property name="username" value="${jdbc.username}"></property>
+ 		<property name="password" value="${jdbc.password}"></property>
+ 	</bean>
+ 	
+ 	<!-- 配置工厂 -->
+ 	<bean id="factory" class="org.mybatis.spring.SqlSessionFactoryBean">
+ 		<property name="dataSource" ref="dataSource"></property>
+ 		<property name="typeAliasesPackage" value="com.ssm.pojo"></property>
+ 		<property name="configLocation" value="classpath:mybatis.xml"></property>
+ 	</bean>
+ 
+    <!-- 配置mapper映射扫描接口和mybatis中的mapper.xml配置文件 -->
+ 	<bean id="mapper" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+ 		<!-- 扫描哪些包下的文件 -->
+ 		<property name="basePackage" value="com.ssm.mapper"></property>
+ 		<!-- 使用属性文件的时候，避免对象已经实例化，但是属性还没加载到，造成数据库连接失败 -->
+ 		<property name="sqlSessionFactoryBeanName" value="factory"></property>
+ 	</bean>
+
+	<!-- 声明事务管理器 -->
+	<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+	
+	<!-- 声明事务 ,并指明哪个被哪个事务管理器配置-->
+	<tx:advice id="txadvice" transaction-manager="txManager">
+		<tx:attributes>
+			<!-- 代表给哪个方法增加事务处理，支持通配符, ins* 表示以ins开头的都要进行事务管理 -->
+			<tx:method name="ins*"  propagation="REQUIRED" rollback-for="java.lang.Exception"/>
+			<tx:method name="upd*"  propagation="REQUIRED" rollback-for="java.lang.Exception"/>
+			<tx:method name="del*"  propagation="REQUIRED"  rollback-for="java.lang.Exception"/>
+			<!-- 一般对查询的方法进行事务管理，可以增强数据库的性能和管理 -->
+			<tx:method name="*" read-only="true"/>
+		</tx:attributes>
+	</tx:advice>
+	
+	<!-- Aop配置切点和通知 -->
+	<aop:config>
+		<aop:pointcut expression="execution(* com.ssm.service.impl.*.*(..))" id="mypointcut"/>
+		<aop:advisor advice-ref="txadvice" pointcut-ref="mypointcut"/>
+	</aop:config>
+
+
+
+ </beans>

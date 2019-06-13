@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<plugins>
+		<!-- 实现了inteceptor接口,其实就是对数据库进行拦截，进行了分页插件的添加，自动在sql语句中添加limit -->
+		<plugin interceptor="com.github.pagehelper.PageHelper">
+			<!-- 告诉插件使用的是什么数据库 
+			  支持六种数据库类型  :  mysql,oracle,MraiaDB,SQLite,Hsqldb,PostgreSQL-->
+			<property name="dialect" value="mysql"/>
+		</plugin>
+	</plugins>
+
+</configuration>  
